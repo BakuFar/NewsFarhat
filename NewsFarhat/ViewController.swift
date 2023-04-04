@@ -22,25 +22,34 @@ class ViewController: UIViewController {
         return tableView
     }()
     
-    private lazy var titleView: UILabel = {
-        let title = UILabel()
-        return title
-    }()
-    
-    private lazy var image: UIImageView = {
-        let image = UIImageView()
-        return image
-    }()
+    private var timeData: [Product] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        initialize()
+        setupTableView()
+        setupConstraints()
         
-        tableView.dataSource = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        APIManager.shared.getData { [weak self] result in
+            switch result {
+            case .success(let data):
+                DispatchQueue.main.async {
+                    guard let self else {return}
+                    self.timeData = data.products
+                    self.tableView.reloadData()
+                }
+            case .failure(let error):
+                print (error.localizedDescription)
+            }
+        }
     }
     
-    private func initialize() {
+    private func setupTableView() {
+        tableView.register(CustomTableViewCell.self, forCellReuseIdentifier: CustomTableViewCell.idCell)
+        tableView.dataSource = self
+        tableView.delegate = self
+    }
+    
+    private func setupConstraints() {
         view.addSubview(mainTitle)
         mainTitle.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
@@ -49,7 +58,7 @@ class ViewController: UIViewController {
         
         view.addSubview(tableView)
         tableView.snp.makeConstraints { make in
-            make.top.equalTo(mainTitle).inset(30)
+            make.top.equalTo(mainTitle.snp.bottom).inset(-10)
             make.left.right.bottom.equalToSuperview()
         }
     }
@@ -57,14 +66,21 @@ class ViewController: UIViewController {
 
 extension ViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        10
+        timeData.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell")
-        cell?.textLabel?.text = "Farhat"
-        return cell!
+        let cell = tableView.dequeueReusableCell(withIdentifier: CustomTableViewCell.idCell) as! CustomTableViewCell
+        let value = timeData[indexPath.row]
+        cell.configure(with: value)
+        return cell
     }
 }
 
+extension ViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        CGFloat(156)
+    }
+
+}
 
